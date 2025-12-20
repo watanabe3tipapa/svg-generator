@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="ja">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Logo SVG Generator — Outline + Font Upload</title>
+
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Noto+Sans+JP:wght@400;700&display=swap"
+        rel="stylesheet" />
+    <link rel="stylesheet" href="style.css" />
+
+    <!-- opentype.js (CDN build) -->
+    <script src="https://cdn.jsdelivr.net/npm/opentype.js@1.3.8/dist/opentype.min.js"></script>
+</head>
+
+<body>
+    <main class="container">
+        <header>
+            <h1>Logo SVG Generator</h1>
+            <p class="subtitle">
+                フォントアップロードとアウトライン化（文字→パス）をクライアントで実行
+            </p>
+        </header>
+
+        <section class="layout">
+            <form id="form" class="form">
+                <label>Text
+                    <input type="text" name="text" value="YourBrand" />
+                </label>
+
+                <label>Font
+                    <select name="font" id="fontSelect">
+                        <option value="Inter">Inter (web)</option>
+                        <option value="Noto Sans JP">
+                            Noto Sans JP (web)
+                        </option>
+                        <option value="uploaded">
+                            -- Uploaded font --
+                        </option>
+                    </select>
+                </label>
+
+                <label>Upload font (.ttf/.otf)
+                    <input type="file" id="fontFile" accept=".ttf,.otf,.woff,.woff2" />
+                    <small class="muted">アップロードしたフォントはローカル処理されます。ライセンスを確認してください。</small>
+                </label>
+
+                <label>Size (px)
+                    <input type="number" name="size" value="48" min="8" max="512" />
+                </label>
+
+                <label>Color
+                    <input type="color" name="color" value="#111827" />
+                </label>
+
+                <label>Background
+                    <input type="color" name="bg" value="#ffffff" />
+                </label>
+
+                <label>Stroke width (px)
+                    <input type="number" name="stroke" value="0" min="0" max="10" />
+                </label>
+
+                <label>Icon
+                    <select name="icon">
+                        <option value="none">None</option>
+                        <option value="circle">Circle</option>
+                        <option value="square">Square</option>
+                    </select>
+                </label>
+
+                <label>Layout
+                    <select name="layout">
+                        <option value="center">Center</option>
+                        <option value="left">Left (icon left)</option>
+                        <option value="right">Right (icon right)</option>
+                    </select>
+                </label>
+
+                <label>Width (px)
+                    <input type="number" name="width" value="512" min="64" max="4096" />
+                </label>
+
+                <label>Height (px)
+                    <input type="number" name="height" value="128" min="32" max="4096" />
+                </label>
+
+                <label class="checkbox"><input type="checkbox" name="outline"
+                        id="outlineCheck" />アウトライン化（文字をパスに変換）</label>
+                <label class="checkbox"><input type="checkbox" name="embedFont"
+                        id="embedCheck" />SVGにフォントを埋め込む（base64）</label>
+
+                <div class="buttons">
+                    <button type="button" id="previewBtn">Preview</button>
+                    <button type="button" id="downloadBtn">
+                        Download SVG
+                    </button>
+                </div>
+            </form>
+
+            <aside class="preview-area">
+                <h2>Preview</h2>
+                <div id="preview" class="preview"></div>
+                <details class="hint">
+                    <summary>Tips</summary>
+                    <ul>
+                        <li>
+                            アウトライン化は opentype.js
+                            を使用。複雑なフォント/文字列では時間がかかる場合があります。
+                        </li>
+                        <li>
+                            埋め込みフォントはファイルサイズが大きくなります。
+                        </li>
+                    </ul>
+                </details>
+            </aside>
+        </section>
+
+        <footer class="footer">
+            <small>Static demo — deploy on GitHub Pages |
+                <a href="https://github.com/watanabe3tipapa/svg-generator" target="_blank"
+                    rel="noopener noreferrer">このリポジトリを見る</a>
+            </small>
+        </footer>
+    </main>
+
+    <script src="app.js"></script>
+</body>
+
+</html>

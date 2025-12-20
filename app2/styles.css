@@ -1,0 +1,74 @@
+body {
+    font-family:
+        system-ui,
+        -apple-system,
+        "Segoe UI",
+        Roboto,
+        "Helvetica Neue",
+        Arial;
+    margin: 24px;
+}
+#controls {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+}
+#workspace {
+    display: flex;
+    gap: 12px;
+}
+#svgContainer {
+    flex: 1;
+    border: 1px solid #ddd;
+    padding: 8px;
+    min-width: 320px;
+}
+#svgContainer svg {
+    max-width: 100%;
+    height: auto;
+    background: #fff;
+}
+#layerPanel {
+    width: 220px;
+    border: 1px solid #ddd;
+    padding: 8px;
+}
+#layers {
+    list-style: none;
+    padding: 0;
+    margin: 8px 0;
+    max-height: 400px;
+    overflow: auto;
+}
+#layers li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px;
+    border-bottom: 1px solid #eee;
+}
+.layer-visible {
+    cursor: pointer;
+}
+.layer-name {
+    flex: 1;
+    margin-right: 8px;
+}
+button {
+    padding: 6px 8px;
+}
+
+/* 選択ハイライト */
+.selected {
+    outline: 2px dashed #06f;
+}
+
+/* リサイズハンドル */
+.handle {
+    fill: #fff;
+    stroke: #06f;
+    stroke-width: 1;
+    cursor: nwse-resize;
+}
