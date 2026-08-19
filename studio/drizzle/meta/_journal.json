@@ -1,0 +1,13 @@
+{
+  "version": "7",
+  "dialect": "mysql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "5",
+      "when": 1787173540656,
+      "tag": "0000_bouncy_harpoon",
+      "breakpoints": true
+    }
+  ]
+}
