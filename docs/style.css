@@ -45,12 +45,19 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
 
 .site-header, .site-footer { display: flex; align-items: center; justify-content: space-between; gap: 24px; }
 .site-header { padding: 6px 0 22px; border-bottom: 1px solid var(--line); }
+.brand-cluster, .header-actions { display: flex; align-items: center; gap: 16px; }
 
 .brand { display: inline-flex; align-items: center; gap: 11px; color: var(--ink); text-decoration: none; }
 .brand-mark { width: 39px; height: 39px; color: var(--signal); flex: none; }
 .brand strong { display: block; font-family: "Zen Kaku Gothic New", sans-serif; font-size: 17px; letter-spacing: -0.035em; line-height: 1.1; }
 .brand small, .eyebrow { display: block; font-family: "IBM Plex Mono", monospace; font-size: 10px; letter-spacing: 0.09em; text-transform: uppercase; }
 .brand small { margin-top: 3px; color: var(--muted); letter-spacing: 0.035em; text-transform: none; }
+.classic-demo-badge { display: inline-flex; align-items: center; gap: 8px; min-height: 39px; padding: 6px 10px 6px 7px; border: 1px solid #e0b5a7; border-radius: 5px; color: var(--signal-dark); background: #fff6f0; box-shadow: 3px 3px 0 rgba(228, 87, 46, 0.18); }
+.classic-demo-badge svg { width: 24px; height: 24px; flex: none; color: var(--signal); }
+.classic-demo-badge strong, .classic-demo-badge small { display: block; }
+.classic-demo-badge strong { font-family: "Zen Kaku Gothic New", sans-serif; font-size: 12px; line-height: 1.15; letter-spacing: -0.02em; }
+.classic-demo-badge small { margin-top: 2px; color: #8a6257; font-family: "IBM Plex Mono", monospace; font-size: 8px; letter-spacing: 0.02em; }
+.classic-demo-note { color: var(--muted); font-size: 11px; }
 .repository-link { color: var(--ink); font-size: 13px; font-weight: 700; text-decoration-color: var(--signal); text-decoration-thickness: 2px; text-underline-offset: 4px; }
 .repository-link:hover { color: var(--signal-dark); }
 
@@ -166,6 +173,8 @@ input[type="range"] { width: 100%; height: 24px; margin: 0; accent-color: var(--
 .site-footer a { color: var(--ink); text-underline-offset: 3px; }
 
 @media (max-width: 880px) {
+    .site-header { align-items: flex-start; }
+    .header-actions { align-items: flex-end; flex-direction: column; gap: 4px; }
     .workspace { grid-template-columns: 1fr; gap: 48px; padding-top: 36px; }
     .editor-rail { max-width: none; }
     .preview-panel { grid-row: 1; padding-top: 0; }
@@ -176,6 +185,11 @@ input[type="range"] { width: 100%; height: 24px; margin: 0; accent-color: var(--
 @media (max-width: 560px) {
     .page-shell { padding: 16px 16px 18px; }
     .site-header { padding-bottom: 16px; }
+    .brand-cluster { gap: 9px; }
+    .classic-demo-badge { padding-right: 7px; }
+    .classic-demo-badge small, .classic-demo-note { display: none; }
+    .classic-demo-badge strong { font-size: 10px; }
+    .classic-demo-badge svg { width: 21px; height: 21px; }
     .repository-link { font-size: 11px; }
     .brand-mark { width: 34px; height: 34px; }
     .brand strong { font-size: 15px; }

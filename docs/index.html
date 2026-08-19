@@ -22,25 +22,37 @@
     <!-- Craft Desk: 編集の順序を左のレールに置き、成果物を右のキャンバスで常に確認する。 -->
     <div class="page-shell">
         <header class="site-header">
-            <a class="brand" href="./" aria-label="SVG Generator の先頭へ">
-                <svg class="brand-mark" viewBox="0 0 48 48" aria-hidden="true">
-                    <path d="M9 8h25l5 5v26H9z" fill="none" stroke="currentColor" stroke-width="5" stroke-linejoin="round" />
-                    <path d="M27 8v12h12" fill="none" stroke="currentColor" stroke-width="5" stroke-linejoin="round" />
-                    <path d="M17 31h14" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" />
-                </svg>
-                <span>
-                    <strong>SVG Generator</strong>
-                    <small>Logo type workshop</small>
+            <div class="brand-cluster">
+                <a class="brand" href="./" aria-label="SVG Generator の先頭へ">
+                    <svg class="brand-mark" viewBox="0 0 48 48" aria-hidden="true">
+                        <path d="M9 8h25l5 5v26H9z" fill="none" stroke="currentColor" stroke-width="5" stroke-linejoin="round" />
+                        <path d="M27 8v12h12" fill="none" stroke="currentColor" stroke-width="5" stroke-linejoin="round" />
+                        <path d="M17 31h14" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" />
+                    </svg>
+                    <span>
+                        <strong>SVG Generator</strong>
+                        <small>Logo type workshop</small>
+                    </span>
+                </a>
+                <span class="classic-demo-badge" aria-label="Classic Demo: GitHub Pagesで動く静的版">
+                    <svg viewBox="0 0 40 40" aria-hidden="true">
+                        <path d="M8 7h18l6 6v20H8z" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linejoin="round" />
+                        <path d="M26 7v7h6M14 23h12M14 28h8" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                    <span><strong>Classic Demo</strong><small>GitHub Pages・静的版</small></span>
                 </span>
-            </a>
-            <a class="repository-link" href="https://github.com/watanabe3tipapa/svg-generator" target="_blank"
-                rel="noopener noreferrer">GitHub を見る <span aria-hidden="true">↗</span></a>
+            </div>
+            <div class="header-actions">
+                <span class="classic-demo-note">保存・AI提案なしの軽量版</span>
+                <a class="repository-link" href="https://github.com/watanabe3tipapa/svg-generator" target="_blank"
+                    rel="noopener noreferrer">GitHub を見る <span aria-hidden="true">↗</span></a>
+            </div>
         </header>
 
         <main class="workspace">
             <section class="editor-rail" aria-labelledby="editor-title">
                 <div class="editor-intro">
-                    <p class="eyebrow">BROWSER-ONLY SVG TOOL</p>
+                    <p class="eyebrow">CLASSIC DEMO · BROWSER-ONLY SVG TOOL</p>
                     <h1 id="editor-title">文字を入れたら、<br>すぐにSVGへ。</h1>
                     <p>テキストの見た目を整え、必要なときだけ出力設定を追加します。編集内容はプレビューに自動で反映されます。</p>
                 </div>
