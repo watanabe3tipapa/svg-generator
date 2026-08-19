@@ -4,10 +4,13 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Logo SVG Generator — Outline + Font Upload</title>
+    <meta name="description" content="ブラウザだけでロゴ文字をSVGとして仕立てるジェネレーター" />
+    <title>SVG Generator | ロゴSVGを手軽に作成</title>
 
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Noto+Sans+JP:wght@400;700&display=swap"
+        href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+JP:wght@400;500;700&family=Zen+Kaku+Gothic+New:wght@500;700;900&display=swap"
         rel="stylesheet" />
     <link rel="stylesheet" href="style.css" />
 
@@ -16,115 +19,187 @@
 </head>
 
 <body>
-    <main class="container">
-        <header>
-            <h1>Logo SVG Generator</h1>
-            <p class="subtitle">
-                フォントアップロードとアウトライン化（文字→パス）をクライアントで実行
-            </p>
+    <!-- Craft Desk: 編集の順序を左のレールに置き、成果物を右のキャンバスで常に確認する。 -->
+    <div class="page-shell">
+        <header class="site-header">
+            <a class="brand" href="./" aria-label="SVG Generator の先頭へ">
+                <svg class="brand-mark" viewBox="0 0 48 48" aria-hidden="true">
+                    <path d="M9 8h25l5 5v26H9z" fill="none" stroke="currentColor" stroke-width="5" stroke-linejoin="round" />
+                    <path d="M27 8v12h12" fill="none" stroke="currentColor" stroke-width="5" stroke-linejoin="round" />
+                    <path d="M17 31h14" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" />
+                </svg>
+                <span>
+                    <strong>SVG Generator</strong>
+                    <small>Logo type workshop</small>
+                </span>
+            </a>
+            <a class="repository-link" href="https://github.com/watanabe3tipapa/svg-generator" target="_blank"
+                rel="noopener noreferrer">GitHub を見る <span aria-hidden="true">↗</span></a>
         </header>
 
-        <section class="layout">
-            <form id="form" class="form">
-                <label>Text
-                    <input type="text" name="text" value="YourBrand" />
-                </label>
-
-                <label>Font
-                    <select name="font" id="fontSelect">
-                        <option value="Inter">Inter (web)</option>
-                        <option value="Noto Sans JP">
-                            Noto Sans JP (web)
-                        </option>
-                        <option value="uploaded">
-                            -- Uploaded font --
-                        </option>
-                    </select>
-                </label>
-
-                <label>Upload font (.ttf/.otf)
-                    <input type="file" id="fontFile" accept=".ttf,.otf,.woff,.woff2" />
-                    <small class="muted">アップロードしたフォントはローカル処理されます。ライセンスを確認してください。</small>
-                </label>
-
-                <label>Size (px)
-                    <input type="number" name="size" value="48" min="8" max="512" />
-                </label>
-
-                <label>Color
-                    <input type="color" name="color" value="#111827" />
-                </label>
-
-                <label>Background
-                    <input type="color" name="bg" value="#ffffff" />
-                </label>
-
-                <label>Stroke width (px)
-                    <input type="number" name="stroke" value="0" min="0" max="10" />
-                </label>
-
-                <label>Icon
-                    <select name="icon">
-                        <option value="none">None</option>
-                        <option value="circle">Circle</option>
-                        <option value="square">Square</option>
-                    </select>
-                </label>
-
-                <label>Layout
-                    <select name="layout">
-                        <option value="center">Center</option>
-                        <option value="left">Left (icon left)</option>
-                        <option value="right">Right (icon right)</option>
-                    </select>
-                </label>
-
-                <label>Width (px)
-                    <input type="number" name="width" value="512" min="64" max="4096" />
-                </label>
-
-                <label>Height (px)
-                    <input type="number" name="height" value="128" min="32" max="4096" />
-                </label>
-
-                <label class="checkbox"><input type="checkbox" name="outline"
-                        id="outlineCheck" />アウトライン化（文字をパスに変換）</label>
-                <label class="checkbox"><input type="checkbox" name="embedFont"
-                        id="embedCheck" />SVGにフォントを埋め込む（base64）</label>
-
-                <div class="buttons">
-                    <button type="button" id="previewBtn">Preview</button>
-                    <button type="button" id="downloadBtn">
-                        Download SVG
-                    </button>
+        <main class="workspace">
+            <section class="editor-rail" aria-labelledby="editor-title">
+                <div class="editor-intro">
+                    <p class="eyebrow">BROWSER-ONLY SVG TOOL</p>
+                    <h1 id="editor-title">文字を入れたら、<br>すぐにSVGへ。</h1>
+                    <p>テキストの見た目を整え、必要なときだけ出力設定を追加します。編集内容はプレビューに自動で反映されます。</p>
                 </div>
-            </form>
 
-            <aside class="preview-area">
-                <h2>Preview</h2>
-                <div id="preview" class="preview"></div>
-                <details class="hint">
-                    <summary>Tips</summary>
+                <form id="form" class="editor-form" novalidate>
+                    <fieldset class="workflow-section">
+                        <legend><span class="step-number">01</span><span>文字とフォント</span></legend>
+                        <p class="section-help">まず、ロゴにしたい言葉と書体を決めます。</p>
+
+                        <label class="field field-wide" for="textInput">
+                            <span>ロゴの文字</span>
+                            <input id="textInput" type="text" name="text" value="YourBrand" maxlength="120"
+                                autocomplete="off" aria-describedby="textHelp" />
+                            <small id="textHelp">改行なしで入力してください。空欄の場合は「Logo」として書き出します。</small>
+                        </label>
+
+                        <div class="preset-group field-wide" aria-label="すぐに試せるスタイル">
+                            <span class="field-label">すぐに試す</span>
+                            <div class="preset-buttons">
+                                <button type="button" class="preset-button" data-preset="simple">シンプル</button>
+                                <button type="button" class="preset-button" data-preset="badge">アイコン付き</button>
+                                <button type="button" class="preset-button" data-preset="wide">横長ロゴ</button>
+                            </div>
+                        </div>
+
+                        <label class="field" for="fontSelect">
+                            <span>フォント</span>
+                            <select name="font" id="fontSelect">
+                                <option value="Noto Sans JP">Noto Sans JP（日本語向け）</option>
+                                <option value="Inter">Inter（英字向け）</option>
+                                <option value="uploaded">アップロードしたフォント</option>
+                            </select>
+                        </label>
+
+                        <label class="field" for="fontFile">
+                            <span>フォントを追加</span>
+                            <input type="file" id="fontFile" accept=".ttf,.otf,.woff,.woff2" />
+                        </label>
+                        <p class="privacy-note field-wide"><span aria-hidden="true">◎</span> フォントファイルはブラウザ内だけで処理され、アップロードされません。</p>
+                    </fieldset>
+
+                    <fieldset class="workflow-section">
+                        <legend><span class="step-number">02</span><span>見た目を整える</span></legend>
+                        <p class="section-help">文字の大きさ、色、アイコン、配置を調整します。</p>
+
+                        <label class="field" for="sizeInput">
+                            <span>文字サイズ <output id="sizeOutput" for="sizeInput">56</output><small>px</small></span>
+                            <input id="sizeInput" type="range" name="size" value="56" min="8" max="512" />
+                        </label>
+                        <label class="field" for="strokeInput">
+                            <span>線の太さ <output id="strokeOutput" for="strokeInput">0</output><small>px</small></span>
+                            <input id="strokeInput" type="range" name="stroke" value="0" min="0" max="10" step="0.5" />
+                        </label>
+
+                        <label class="field" for="colorInput">
+                            <span>文字色</span>
+                            <span class="color-input"><input id="colorInput" type="color" name="color" value="#111827" /><output
+                                    id="colorOutput" for="colorInput">#111827</output></span>
+                        </label>
+                        <label class="field" for="bgInput">
+                            <span>背景色</span>
+                            <span class="color-input"><input id="bgInput" type="color" name="bg" value="#ffffff" /><output
+                                    id="bgOutput" for="bgInput">#FFFFFF</output></span>
+                        </label>
+
+                        <label class="field" for="iconSelect">
+                            <span>アイコン</span>
+                            <select id="iconSelect" name="icon">
+                                <option value="none">なし</option>
+                                <option value="circle">丸</option>
+                                <option value="square">角丸の四角</option>
+                            </select>
+                        </label>
+                        <label class="field" for="layoutSelect">
+                            <span>配置</span>
+                            <select id="layoutSelect" name="layout">
+                                <option value="center">中央</option>
+                                <option value="left">左寄せ（アイコンは左）</option>
+                                <option value="right">右寄せ（アイコンは右）</option>
+                            </select>
+                        </label>
+                    </fieldset>
+
+                    <fieldset class="workflow-section output-size-section">
+                        <legend><span class="step-number">03</span><span>出力サイズ</span></legend>
+                        <p class="section-help">使用先に合わせてキャンバスを指定します。一般的な横長ロゴなら 1200 × 300 px が便利です。</p>
+                        <label class="field" for="widthInput">
+                            <span>幅 <small>px</small></span>
+                            <input id="widthInput" type="number" name="width" value="1200" min="64" max="4096" inputmode="numeric" />
+                        </label>
+                        <label class="field" for="heightInput">
+                            <span>高さ <small>px</small></span>
+                            <input id="heightInput" type="number" name="height" value="300" min="32" max="4096" inputmode="numeric" />
+                        </label>
+                    </fieldset>
+
+                    <details class="advanced-options">
+                        <summary><span>詳細設定</span><small>互換性・データ量</small></summary>
+                        <div class="advanced-content">
+                            <label class="switch-row" for="outlineCheck">
+                                <input type="checkbox" name="outline" id="outlineCheck" />
+                                <span class="switch" aria-hidden="true"></span>
+                                <span><strong>文字をアウトライン化する</strong><small>文字をパスに変換します。閲覧環境にフォントがなくても形を保ちやすくなります。</small></span>
+                            </label>
+                            <label class="switch-row" for="embedCheck">
+                                <input type="checkbox" name="embedFont" id="embedCheck" />
+                                <span class="switch" aria-hidden="true"></span>
+                                <span><strong>フォントをSVGに埋め込む</strong><small>アップロードしたフォントをSVG内に含めます。ファイルサイズは大きくなります。</small></span>
+                            </label>
+                            <p class="advanced-note">アウトライン化は、アップロードしたフォントを使う場合に最も確実です。</p>
+                        </div>
+                    </details>
+
+                    <div class="editor-actions">
+                        <button type="button" class="reset-button" id="resetBtn">初期値に戻す</button>
+                        <button type="button" class="download-button" id="downloadBtn"><span aria-hidden="true">↓</span> SVGを書き出す</button>
+                    </div>
+                    <p id="statusMessage" class="status-message" role="status" aria-live="polite">編集内容はプレビューに自動で反映されます。</p>
+                </form>
+            </section>
+
+            <aside class="preview-panel" aria-labelledby="preview-title">
+                <header class="preview-header">
+                    <div>
+                        <p class="eyebrow">LIVE PREVIEW</p>
+                        <h2 id="preview-title">仕上がり</h2>
+                    </div>
+                    <span id="previewState" class="preview-state"><span aria-hidden="true"></span>自動反映</span>
+                </header>
+
+                <div class="preview-stage" aria-live="polite">
+                    <span class="crop-mark top-left" aria-hidden="true"></span>
+                    <span class="crop-mark top-right" aria-hidden="true"></span>
+                    <span class="crop-mark bottom-left" aria-hidden="true"></span>
+                    <span class="crop-mark bottom-right" aria-hidden="true"></span>
+                    <div id="preview" class="preview" aria-label="SVGのプレビュー"></div>
+                </div>
+
+                <div class="preview-footer">
+                    <p>色やサイズを変えると、ここにすぐ反映されます。</p>
+                    <button type="button" class="copy-button" id="copyBtn">SVGコードをコピー</button>
+                </div>
+
+                <details class="help-panel">
+                    <summary>困ったときのヒント</summary>
                     <ul>
-                        <li>
-                            アウトライン化は opentype.js
-                            を使用。複雑なフォント/文字列では時間がかかる場合があります。
-                        </li>
-                        <li>
-                            埋め込みフォントはファイルサイズが大きくなります。
-                        </li>
+                        <li>日本語ロゴには「Noto Sans JP」を選ぶと、文字の欠けを避けやすくなります。</li>
+                        <li>Webサイトなど、使用する環境に同じフォントがない場合は「アウトライン化」が役立ちます。</li>
+                        <li>フォントの利用条件は、書き出す前に必ず確認してください。</li>
                     </ul>
                 </details>
             </aside>
-        </section>
+        </main>
 
-        <footer class="footer">
-            <small>Static demo — deploy on GitHub Pages |
-                <a href="https://github.com/watanabe3tipapa/svg-generator" target="_blank"
-                    rel="noopener noreferrer">このリポジトリを見る</a>
-            </small>
+        <footer class="site-footer">
+            <span>すべての処理はブラウザ内で完結します。</span>
+            <a href="https://github.com/watanabe3tipapa/svg-generator" target="_blank" rel="noopener noreferrer">ソースコードとライセンス</a>
         </footer>
-    </main>
+    </div>
 
     <script src="app.js"></script>
 </body>

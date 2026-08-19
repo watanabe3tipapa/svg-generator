@@ -1,9 +1,12 @@
-// Logo SVG Generator with font upload + outline (client-side)
-// Requires opentype.js (loaded in index.html)
+// Craft Desk: 入力を即時に成果物へ反映し、技術設定は必要なときだけ判断できるようにする。
+// Requires opentype.js (loaded in index.html).
 const form = document.getElementById("form");
 const previewWrap = document.getElementById("preview");
-const previewBtn = document.getElementById("previewBtn");
 const downloadBtn = document.getElementById("downloadBtn");
+const copyBtn = document.getElementById("copyBtn");
+const resetBtn = document.getElementById("resetBtn");
+const statusMessage = document.getElementById("statusMessage");
+const previewState = document.getElementById("previewState");
 const fontFileInput = document.getElementById("fontFile");
 const fontSelect = document.getElementById("fontSelect");
 const outlineCheck = document.getElementById("outlineCheck");
@@ -11,136 +14,194 @@ const embedCheck = document.getElementById("embedCheck");
 
 let uploadedFont = null; // {name, arrayBuffer, postScriptName, fileName}
 let uploadedFontBlobUrl = null;
-let loadedFontFace = null; // Track loaded FontFace to avoid duplicates
+let loadedFontFace = null;
+let renderedSvg = "";
+let renderTimer = null;
+let renderVersion = 0;
+
+const presetValues = {
+  simple: {
+    text: "YourBrand",
+    font: "Noto Sans JP",
+    size: 56,
+    color: "#111827",
+    bg: "#ffffff",
+    stroke: 0,
+    icon: "none",
+    layout: "center",
+    width: 1200,
+    height: 300,
+    outline: false,
+    embedFont: false,
+  },
+  badge: {
+    text: "YourBrand",
+    font: "Noto Sans JP",
+    size: 64,
+    color: "#E4572E",
+    bg: "#FFF8F2",
+    stroke: 0,
+    icon: "circle",
+    layout: "left",
+    width: 1200,
+    height: 300,
+    outline: false,
+    embedFont: false,
+  },
+  wide: {
+    text: "YourBrand",
+    font: "Inter",
+    size: 80,
+    color: "#111827",
+    bg: "#ffffff",
+    stroke: 0,
+    icon: "none",
+    layout: "center",
+    width: 1600,
+    height: 320,
+    outline: false,
+    embedFont: false,
+  },
+};
+
+function setStatus(message, tone = "neutral") {
+  statusMessage.textContent = message;
+  statusMessage.dataset.tone = tone;
+  previewState.classList.toggle("is-updating", tone === "updating");
+}
 
 function escapeXml(unsafe) {
   return String(unsafe).replace(
     /[&<>"']/g,
-    (c) =>
+    (character) =>
       ({
         "&": "&amp;",
         "<": "&lt;",
         ">": "&gt;",
         '"': "&quot;",
         "'": "&apos;",
-      })[c],
+      })[character],
   );
 }
 
-fontFileInput.addEventListener("change", async (e) => {
-  const f = e.target.files && e.target.files[0];
-  if (!f) return;
-  const arr = await f.arrayBuffer();
-  try {
-    const font = opentype.parse(arr);
-    const name =
-      (font.names &&
-        font.names.fullName &&
-        (font.names.fullName.en || Object.values(font.names.fullName)[0])) ||
-      f.name ||
-      "UploadedFont";
-    const post =
-      (font.names &&
-        font.names.postScriptName &&
-        (font.names.postScriptName.en ||
-          Object.values(font.names.postScriptName)[0])) ||
-      name.replace(/\s+/g, "_");
-    uploadedFont = {
-      name,
-      arrayBuffer: arr,
-      postScriptName: post,
-      fileName: f.name,
-    };
-    // update or add uploaded option label
-    let opt = Array.from(fontSelect.options).find(
-      (o) => o.value === "uploaded",
-    );
-    if (!opt) {
-      const o = document.createElement("option");
-      o.value = "uploaded";
-      o.text = `${name} (uploaded)`;
-      fontSelect.add(o);
-    } else {
-      opt.text = `${name} (uploaded)`;
-    }
-    fontSelect.value = "uploaded";
-    // create blob URL and register FontFace for preview rendering
-    if (uploadedFontBlobUrl) URL.revokeObjectURL(uploadedFontBlobUrl);
-    // Remove old FontFace if exists to prevent duplicates
-    if (loadedFontFace) {
-      try {
-        document.fonts.delete(loadedFontFace);
-      } catch (e) {
-        console.warn("Failed to delete old FontFace", e);
-      }
-    }
-    const blob = new Blob([arr], { type: "font/otf" });
-    uploadedFontBlobUrl = URL.createObjectURL(blob);
-    try {
-      const ff = new FontFace(
-        uploadedFont.postScriptName,
-        `url(${uploadedFontBlobUrl})`,
-      );
-      await ff.load();
-      document.fonts.add(ff);
-      loadedFontFace = ff;
-      console.log("Uploaded font loaded:", uploadedFont.postScriptName);
-    } catch (err) {
-      console.warn("FontFace load failed:", err);
-      alert("フォントの読み込みに失敗しました。ブラウザがこのフォント形式をサポートしていない可能性があります。");
-    }
-    renderPreview();
-  } catch (err) {
-    alert("フォントの解析に失敗しました: " + (err && err.message));
-    console.error("Font parsing error:", err);
-  }
-});
+function numberInRange(value, fallback, min, max) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return fallback;
+  return Math.min(max, Math.max(min, number));
+}
 
 function readForm() {
   const fd = new FormData(form);
+  const text = String(fd.get("text") || "").replace(/[\r\n]+/g, " ").trim();
   return {
-    text: fd.get("text") || "Logo",
-    font: fd.get("font") || "Inter",
-    size: Number(fd.get("size") || 48),
+    text: text || "Logo",
+    font: fd.get("font") || "Noto Sans JP",
+    size: numberInRange(fd.get("size"), 56, 8, 512),
     color: fd.get("color") || "#111827",
     bg: fd.get("bg") || "#ffffff",
-    stroke: Number(fd.get("stroke") || 0),
+    stroke: numberInRange(fd.get("stroke"), 0, 0, 10),
     icon: fd.get("icon") || "none",
     layout: fd.get("layout") || "center",
-    width: Number(fd.get("width") || 512),
-    height: Number(fd.get("height") || 128),
+    width: numberInRange(fd.get("width"), 1200, 64, 4096),
+    height: numberInRange(fd.get("height"), 300, 32, 4096),
     outline: outlineCheck.checked,
     embedFont: embedCheck.checked,
   };
 }
 
-// Build SVG: if outline requested and font available, convert glyphs to path using opentype.js
+function updateControlOutputs() {
+  document.getElementById("sizeOutput").textContent = form.elements.size.value;
+  document.getElementById("strokeOutput").textContent = form.elements.stroke.value;
+  document.getElementById("colorOutput").textContent = form.elements.color.value.toUpperCase();
+  document.getElementById("bgOutput").textContent = form.elements.bg.value.toUpperCase();
+}
+
+function applyPreset(name) {
+  const values = presetValues[name];
+  if (!values) return;
+  Object.entries(values).forEach(([key, value]) => {
+    const field = form.elements.namedItem(key);
+    if (!field) return;
+    if (field.type === "checkbox") field.checked = value;
+    else field.value = value;
+  });
+  updateControlOutputs();
+  setStatus(`「${document.querySelector(`[data-preset="${name}"]`).textContent}」を適用しました。`, "updating");
+  scheduleRender();
+}
+
+fontFileInput.addEventListener("change", async (event) => {
+  const file = event.target.files && event.target.files[0];
+  if (!file) return;
+
+  setStatus("フォントを読み込んでいます…", "updating");
+  try {
+    const arrayBuffer = await file.arrayBuffer();
+    const font = opentype.parse(arrayBuffer);
+    const name =
+      (font.names &&
+        font.names.fullName &&
+        (font.names.fullName.en || Object.values(font.names.fullName)[0])) ||
+      file.name ||
+      "UploadedFont";
+    const postScriptName =
+      (font.names &&
+        font.names.postScriptName &&
+        (font.names.postScriptName.en || Object.values(font.names.postScriptName)[0])) ||
+      name.replace(/\s+/g, "_");
+
+    uploadedFont = { name, arrayBuffer, postScriptName, fileName: file.name };
+    const option = Array.from(fontSelect.options).find((item) => item.value === "uploaded");
+    option.text = `${name}（アップロード済み）`;
+    fontSelect.value = "uploaded";
+
+    if (uploadedFontBlobUrl) URL.revokeObjectURL(uploadedFontBlobUrl);
+    if (loadedFontFace) {
+      try {
+        document.fonts.delete(loadedFontFace);
+      } catch (error) {
+        console.warn("Failed to remove previous FontFace", error);
+      }
+    }
+
+    const blob = new Blob([arrayBuffer], { type: "font/otf" });
+    uploadedFontBlobUrl = URL.createObjectURL(blob);
+    try {
+      const fontFace = new FontFace(postScriptName, `url(${uploadedFontBlobUrl})`);
+      await fontFace.load();
+      document.fonts.add(fontFace);
+      loadedFontFace = fontFace;
+    } catch (error) {
+      console.warn("FontFace load failed:", error);
+    }
+
+    setStatus(`「${name}」を追加しました。プレビューに反映しています。`, "updating");
+    scheduleRender();
+  } catch (error) {
+    console.error("Font parsing error:", error);
+    setStatus("フォントを読み込めませんでした。対応する .ttf / .otf / .woff / .woff2 を選んでください。", "error");
+  }
+});
+
 async function buildSVG(values) {
-  const w = Math.max(1, Math.round(values.width));
-  const h = Math.max(1, Math.round(values.height));
-  const viewBox = `0 0 ${w} ${h}`;
-  const padding = Math.min(24, Math.floor(h * 0.12));
-  const maxIcon = Math.min(h - padding * 2, 96);
-  const iconSize =
-    values.icon === "none" ? 0 : Math.round(Math.min(maxIcon, h * 0.6));
+  const width = Math.max(1, Math.round(values.width));
+  const height = Math.max(1, Math.round(values.height));
+  const viewBox = `0 0 ${width} ${height}`;
+  const padding = Math.min(24, Math.floor(height * 0.12));
+  const maxIcon = Math.min(height - padding * 2, 96);
+  const iconSize = values.icon === "none" ? 0 : Math.round(Math.min(maxIcon, height * 0.6));
   const safeText = escapeXml(values.text);
 
-  // prepare font embedding (base64) if requested and uploadedFont present
   let embedStyle = "";
   if (values.embedFont && uploadedFont) {
     try {
-      // More efficient base64 encoding using btoa with binary string
-      const u8 = new Uint8Array(uploadedFont.arrayBuffer);
-      let binary = '';
-      const len = u8.byteLength;
-      for (let i = 0; i < len; i++) {
-        binary += String.fromCharCode(u8[i]);
-      }
-      const b64 = btoa(binary);
-
-      // Determine font MIME type and format based on file extension
+      const bytes = new Uint8Array(uploadedFont.arrayBuffer);
+      let binary = "";
+      for (let index = 0; index < bytes.byteLength; index += 1) binary += String.fromCharCode(bytes[index]);
+      const encodedFont = btoa(binary);
       const fileName = uploadedFont.fileName.toLowerCase();
-      let fontMime, fontFormat;
+      let fontMime = "font/otf";
+      let fontFormat = "opentype";
       if (fileName.endsWith(".woff2")) {
         fontMime = "font/woff2";
         fontFormat = "woff2";
@@ -150,203 +211,166 @@ async function buildSVG(values) {
       } else if (fileName.endsWith(".ttf")) {
         fontMime = "font/ttf";
         fontFormat = "truetype";
-      } else {
-        fontMime = "font/otf";
-        fontFormat = "opentype";
       }
-
-      const family =
-        uploadedFont.postScriptName || uploadedFont.name.replace(/\s+/g, "_");
-      embedStyle = `@font-face{font-family:"${family}";src:url("data:${fontMime};base64,${b64}") format("${fontFormat}");font-weight:normal;font-style:normal;font-display:swap;}`;
-    } catch (err) {
-      console.error("Font embedding failed:", err);
+      const family = uploadedFont.postScriptName || uploadedFont.name.replace(/\s+/g, "_");
+      embedStyle = `@font-face{font-family:"${family}";src:url("data:${fontMime};base64,${encodedFont}") format("${fontFormat}");font-weight:normal;font-style:normal;font-display:swap;}`;
+    } catch (error) {
+      console.error("Font embedding failed:", error);
     }
   }
 
-  // icon markup
   let iconMarkup = "";
   if (values.icon === "circle") {
     const cx = padding + iconSize / 2;
-    const cy = h / 2;
-    iconMarkup = `<circle cx="${cx}" cy="${cy}" r="${iconSize / 2}" fill="${values.color}" />`;
+    iconMarkup = `<circle cx="${cx}" cy="${height / 2}" r="${iconSize / 2}" fill="${values.color}" />`;
   } else if (values.icon === "square") {
-    const x = padding;
-    const y = Math.round((h - iconSize) / 2);
-    const rx = Math.round(iconSize * 0.12);
-    iconMarkup = `<rect x="${x}" y="${y}" width="${iconSize}" height="${iconSize}" rx="${rx}" fill="${values.color}" />`;
+    const y = Math.round((height - iconSize) / 2);
+    iconMarkup = `<rect x="${padding}" y="${y}" width="${iconSize}" height="${iconSize}" rx="${Math.round(iconSize * 0.12)}" fill="${values.color}" />`;
   }
 
-  // text fragment
+  const anchor = values.layout === "center" ? "middle" : values.layout === "left" ? "start" : "end";
+  let textX = width / 2;
+  if (values.layout === "left") textX = padding + iconSize + (iconSize ? 12 : 0);
+  if (values.layout === "right") textX = width - padding - (iconSize ? iconSize + 12 : 0);
+  const strokeAttribute = values.stroke > 0
+    ? `stroke="${values.color}" stroke-width="${values.stroke}" paint-order="stroke"`
+    : "";
+  const fontFamily = uploadedFont && fontSelect.value === "uploaded"
+    ? uploadedFont.postScriptName || uploadedFont.name.replace(/\s+/g, "_")
+    : values.font;
+  const baseline = Math.round(height / 2 + values.size * 0.35);
   let textFragment = "";
 
   if (values.outline) {
-    // try to obtain opentype font object
-    let fontObj = null;
+    let fontObject = null;
     if (uploadedFont) {
       try {
-        fontObj = opentype.parse(uploadedFont.arrayBuffer);
-      } catch (e) {
-        console.warn("opentype parse failed for uploaded font", e);
+        fontObject = opentype.parse(uploadedFont.arrayBuffer);
+      } catch (error) {
+        console.warn("Could not parse uploaded font for outline:", error);
       }
     }
-    if (!fontObj) {
-      // best-effort fetch for Inter woff (may fail); this is optional fallback
-      if (values.font === "Inter") {
-        try {
-          const res = await fetch(
-            "https://fonts.gstatic.com/s/inter/v12/UcCO3FwrK3i9w2k.woff",
-          );
-          const ab = await res.arrayBuffer();
-          fontObj = opentype.parse(ab);
-        } catch (e) {
-          console.warn("fetch Inter failed", e);
-        }
+    if (!fontObject && values.font === "Inter") {
+      try {
+        const response = await fetch("https://fonts.gstatic.com/s/inter/v12/UcCO3FwrK3i9w2k.woff");
+        fontObject = opentype.parse(await response.arrayBuffer());
+      } catch (error) {
+        console.warn("Could not load Inter for outline:", error);
       }
     }
 
-    if (!fontObj) {
-      // fallback to <text> if no font available for outlines
-      const anchor =
-        values.layout === "center"
-          ? "middle"
-          : values.layout === "left"
-            ? "start"
-            : "end";
-      let x;
-      if (values.layout === "center") x = w / 2;
-      else if (values.layout === "left")
-        x = padding + iconSize + (iconSize ? 12 : 0);
-      else x = w - padding - (iconSize ? iconSize + 12 : 0);
-      const strokeAttr =
-        values.stroke > 0
-          ? `stroke="${values.color}" stroke-width="${values.stroke}" paint-order="stroke"`
-          : "";
-      const fontFamily =
-        uploadedFont && fontSelect.value === "uploaded"
-          ? uploadedFont.postScriptName ||
-          uploadedFont.name.replace(/\s+/g, "_")
-          : values.font;
-      textFragment = `${embedStyle}<text x="${x}" y="${Math.round(h / 2 + values.size * 0.35)}" text-anchor="${anchor}" style="font-family:'${fontFamily}',sans-serif;font-size:${values.size}px;fill:${values.color};">${safeText}</text>`;
+    if (fontObject) {
+      const glyphs = fontObject.stringToGlyphs(values.text);
+      const fontScale = values.size / fontObject.unitsPerEm;
+      const totalAdvance = glyphs.reduce((sum, glyph) => sum + (glyph.advanceWidth || fontObject.unitsPerEm), 0) * fontScale;
+      let cursorX = values.layout === "center"
+        ? (width - totalAdvance) / 2
+        : values.layout === "left"
+          ? padding + iconSize + (iconSize ? 12 : 0)
+          : width - padding - totalAdvance - (iconSize ? iconSize + 12 : 0);
+      let pathData = "";
+      glyphs.forEach((glyph) => {
+        pathData += glyph.getPath(cursorX, baseline, values.size).toPathData();
+        cursorX += (glyph.advanceWidth || fontObject.unitsPerEm) * fontScale;
+      });
+      textFragment = `${embedStyle ? `<style>${embedStyle}</style>` : ""}<path d="${pathData}" fill="${values.color}" ${strokeAttribute} />`;
     } else {
-      // convert string to glyph paths
-      const glyphs = fontObj.stringToGlyphs(values.text);
-      const fontScale = (1 / fontObj.unitsPerEm) * values.size;
-      // compute total advances
-      const totalAdvance =
-        glyphs.reduce(
-          (sum, g) => sum + (g.advanceWidth || fontObj.unitsPerEm),
-          0,
-        ) * fontScale;
-      let startX;
-      if (values.layout === "center") {
-        startX = (w - totalAdvance) / 2;
-      } else if (values.layout === "left") {
-        startX = padding + iconSize + (iconSize ? 12 : 0);
-      } else {
-        // right
-        startX = w - padding - totalAdvance - (iconSize ? iconSize + 12 : 0);
-      }
-      let curX = startX;
-      let pathD = "";
-      const baselineY = Math.round(h / 2 + values.size * 0.35);
-      for (const g of glyphs) {
-        const p = g.getPath(curX, baselineY, values.size);
-        pathD += p.toPathData();
-        curX += (g.advanceWidth || fontObj.unitsPerEm) * fontScale;
-      }
-      // Apply both fill and stroke when stroke is enabled
-      const fillAttr = `fill="${values.color}"`;
-      const strokeAttr =
-        values.stroke > 0
-          ? `stroke="${values.color}" stroke-width="${values.stroke}"`
-          : "";
-      textFragment = `<path d="${pathD}" ${fillAttr} ${strokeAttr} />`;
-      if (embedStyle)
-        textFragment = `<style>${embedStyle}</style>` + textFragment;
+      textFragment = `${embedStyle ? `<style>${embedStyle}</style>` : ""}<text x="${textX}" y="${baseline}" text-anchor="${anchor}" ${strokeAttribute} style="font-family:'${fontFamily}',sans-serif;font-size:${values.size}px;fill:${values.color};">${safeText}</text>`;
     }
   } else {
-    const anchor =
-      values.layout === "center"
-        ? "middle"
-        : values.layout === "left"
-          ? "start"
-          : "end";
-    let x;
-    if (values.layout === "center") x = w / 2;
-    else if (values.layout === "left")
-      x = padding + iconSize + (iconSize ? 12 : 0);
-    else x = w - padding - (iconSize ? iconSize + 12 : 0);
-    const strokeAttr =
-      values.stroke > 0
-        ? `stroke="${values.color}" stroke-width="${values.stroke}" paint-order="stroke"`
-        : "";
-    const fontFamily =
-      uploadedFont && fontSelect.value === "uploaded"
-        ? uploadedFont.postScriptName || uploadedFont.name.replace(/\s+/g, "_")
-        : values.font;
-    textFragment = `${embedStyle}<text x="${x}" y="${Math.round(h / 2 + values.size * 0.35)}" text-anchor="${anchor}" style="font-family:'${fontFamily}',sans-serif;font-size:${values.size}px;fill:${values.color};">${safeText}</text>`;
+    textFragment = `${embedStyle ? `<style>${embedStyle}</style>` : ""}<text x="${textX}" y="${baseline}" text-anchor="${anchor}" ${strokeAttribute} style="font-family:'${fontFamily}',sans-serif;font-size:${values.size}px;fill:${values.color};">${safeText}</text>`;
   }
 
-  const bgRect = `<rect width="100%" height="100%" fill="${values.bg}" />`;
-  const group =
-    values.layout === "right" && iconSize
-      ? `<g>${textFragment}${iconMarkup}</g>`
-      : `<g>${iconMarkup}${textFragment}</g>`;
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="${viewBox}">${bgRect}${group}</svg>`;
-  return svg;
+  const group = values.layout === "right" && iconSize
+    ? `<g>${textFragment}${iconMarkup}</g>`
+    : `<g>${iconMarkup}${textFragment}</g>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="${viewBox}"><rect width="100%" height="100%" fill="${values.bg}" />${group}</svg>`;
 }
 
 async function renderPreview() {
-  const v = readForm();
-  previewWrap.innerHTML = "";
-  const svg = await buildSVG(v);
+  const version = ++renderVersion;
+  const values = readForm();
   try {
-    // create a blob and objectURL for img fallback
-    const blob = new Blob([svg], { type: "image/svg+xml" });
-    const url = URL.createObjectURL(blob);
-    // prefer inline SVG when not outline (so fonts apply), otherwise show img
-    if (!v.outline) {
-      previewWrap.innerHTML = svg;
-      setTimeout(() => {
-        try {
-          URL.revokeObjectURL(url);
-        } catch (e) { }
-      }, 1500);
-    } else {
-      const img = document.createElement("img");
-      img.src = url;
-      img.alt = "SVG preview";
-      img.width = Math.min(v.width, 800);
-      previewWrap.appendChild(img);
-      img.onload = () => {
-        URL.revokeObjectURL(url);
-      };
+    const svg = await buildSVG(values);
+    if (version !== renderVersion) return;
+    renderedSvg = svg;
+    previewWrap.innerHTML = values.outline ? "" : svg;
+
+    if (values.outline) {
+      const image = document.createElement("img");
+      const url = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml" }));
+      image.src = url;
+      image.alt = "作成中のSVGプレビュー";
+      image.onload = () => URL.revokeObjectURL(url);
+      previewWrap.appendChild(image);
     }
-  } catch (err) {
-    console.error("preview render failed", err);
-    previewWrap.textContent = "Preview error";
+    setStatus("プレビューに反映しました。", "success");
+  } catch (error) {
+    console.error("Preview render failed:", error);
+    previewWrap.textContent = "プレビューを更新できませんでした。設定を見直してもう一度お試しください。";
+    setStatus("プレビューを更新できませんでした。", "error");
   }
 }
 
-previewBtn.addEventListener("click", renderPreview);
+function scheduleRender() {
+  window.clearTimeout(renderTimer);
+  renderTimer = window.setTimeout(renderPreview, 120);
+}
 
-downloadBtn.addEventListener("click", async () => {
-  const v = readForm();
-  const svg = await buildSVG(v);
+async function copySvg() {
+  try {
+    const svg = await buildSVG(readForm());
+    renderedSvg = svg;
+    await navigator.clipboard.writeText(svg);
+    setStatus("SVGコードをコピーしました。", "success");
+    copyBtn.textContent = "コピーしました";
+    window.setTimeout(() => { copyBtn.textContent = "SVGコードをコピー"; }, 1800);
+  } catch (error) {
+    console.error("Could not copy SVG:", error);
+    setStatus("コピーできませんでした。HTTPS環境で再度お試しください。", "error");
+  }
+}
+
+async function downloadSvg() {
+  const values = readForm();
+  const svg = await buildSVG(values);
   const blob = new Blob([svg], { type: "image/svg+xml;charset=utf-8" });
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  const name =
-    (v.text || "logo")
-      .trim()
-      .replace(/\s+/g, "_")
-      .replace(/[^\w\-_.]/g, "") || "logo";
-  a.download = `${name}.svg`;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(a.href), 1500);
+  const anchor = document.createElement("a");
+  anchor.href = URL.createObjectURL(blob);
+  const fileName = (values.text || "logo")
+    .trim()
+    .replace(/\s+/g, "_")
+    .replace(/[\\/:*?"<>|]/g, "") || "logo";
+  anchor.download = `${fileName}.svg`;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  window.setTimeout(() => URL.revokeObjectURL(anchor.href), 1500);
+  setStatus(`「${anchor.download}」を書き出しました。`, "success");
+}
+
+form.addEventListener("input", () => {
+  updateControlOutputs();
+  setStatus("プレビューを更新しています…", "updating");
+  scheduleRender();
+});
+form.addEventListener("change", () => {
+  updateControlOutputs();
+  setStatus("プレビューを更新しています…", "updating");
+  scheduleRender();
+});
+document.querySelectorAll("[data-preset]").forEach((button) => {
+  button.addEventListener("click", () => applyPreset(button.dataset.preset));
+});
+downloadBtn.addEventListener("click", downloadSvg);
+copyBtn.addEventListener("click", copySvg);
+resetBtn.addEventListener("click", () => {
+  form.reset();
+  form.elements.font.value = "Noto Sans JP";
+  updateControlOutputs();
+  setStatus("初期値に戻しました。", "updating");
+  scheduleRender();
 });
 
-// initial render
+updateControlOutputs();
 renderPreview();
